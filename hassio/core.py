@@ -162,3 +162,14 @@ class HassIO(CoreSysAttributes):
         await self.sys_addons.shutdown(STARTUP_SERVICES)
         await self.sys_addons.shutdown(STARTUP_SYSTEM)
         await self.sys_addons.shutdown(STARTUP_INITIALIZE)
+
+    async def repair(self):
+        """Repair system integrity."""
+        await self.sys_docker.repair()
+
+        # Restore core functionality
+        await self.sys_addons.repair()
+        await self.sys_homeassistant.repair()
+
+        if self.sys_hassos.available:
+            await self.sys_hassos.repair_cli()
