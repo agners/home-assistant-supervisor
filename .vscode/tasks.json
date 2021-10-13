@@ -85,6 +85,73 @@
         "panel": "new"
       },
       "problemMatcher": []
+    },
+    {
+      "label": "Build Supervisor Image (amd64)",
+      "type": "docker-build",
+      "dockerBuild": {
+        "context": ".",
+        "tag": "homeassistant/amd64-hassio-supervisor:latest",
+        "dockerfile": "Dockerfile",
+        "buildArgs": {
+          "BUILD_FROM": "ghcr.io/home-assistant/amd64-base-python:3.9-alpine3.14",
+          "BUILD_ARCH": "amd64",
+          "VCN_VERSION": "0.9.8"
+        }
+      }
+    },
+    {
+      "label": "Run Supervisor Image (amd64)",
+      "dependsOn": ["Build Supervisor Image (amd64)"],
+      "type": "docker-run",
+      "dockerRun": {
+        "containerName": "hassio_supervisor",
+        "customOptions": "--privileged --security-opt apparmor=\"hassio-supervisor\"",
+        "image": "homeassistant/amd64-hassio-supervisor:latest",
+        "portsPublishAll": false,
+        "remove": true,
+        "ports": [
+          {"containerPort": 33333, "hostPort": 33333}
+        ],
+        "volumes": [
+          {
+            "localPath": "/run/docker.sock",
+            "containerPath": "/run/docker.sock",
+            "permissions": "rw"
+          },
+          {
+            "localPath": "/run/dbus",
+            "containerPath": "/run/dbus",
+            "permissions": "ro"
+          },
+          {
+            "localPath": "/run/supervisor",
+            "containerPath": "/run/os",
+            "permissions": "rw"
+          },
+          {
+            "localPath": "/run/udev",
+            "containerPath": "/run/udev",
+            "permissions": "ro"
+          },
+          {
+            "localPath": "/etc/machine-id",
+            "containerPath": "/etc/machine-id",
+            "permissions": "ro"
+          },
+          {
+            "localPath": "/mnt/data/supervisor",
+            "containerPath": "/data",
+            "permissions": "rw"
+          }
+        ],
+        "env": {
+          "SUPERVISOR_SHARE": "/mnt/data/supervisor",
+          "SUPERVISOR_NAME": "hassio_supervisor",
+          "SUPERVISOR_CPU_RT": "1",
+          "SUPERVISOR_MACHINE": "generic-x86-64"
+        }
+      }
     }
   ],
   "inputs": [
