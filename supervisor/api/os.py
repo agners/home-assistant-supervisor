@@ -4,7 +4,8 @@ import logging
 from pathlib import Path
 from typing import Any, Awaitable
 
-from aiohttp import web
+from aiohttp import ClientSession, UnixConnector, web
+from aiohttp.hdrs import ACCEPT, CONTENT_TYPE
 import voluptuous as vol
 
 from ..const import (
@@ -67,3 +68,33 @@ class APIOS(CoreSysAttributes):
         return {
             ATTR_DEVICES: self.sys_os.datadisk.available_disks,
         }
+
+    async def list_logs(self, request: web.Request) -> dict[str, Any]:
+        """Return logs."""
+        conn = UnixConnector(path="/run/systemd-journal-gatewayd.sock")
+        subpath = request.match_info.get("subpath")
+        query_string = f"?{request.query_string}" if request.query_string else ""
+
+        async with ClientSession(connector=conn) as session:
+            headers = {ACCEPT: request.headers.get(ACCEPT) or "application/json"}
+            if "Range" in request.headers:
+                headers["Range"] = request.headers["Range"]
+
+            async with session.get(
+                f"http://homeassistant/{subpath}{query_string}",
+                headers=headers,
+                timeout=None,
+            ) as client_response:
+                try:
+                    _LOGGER.info("Start log response")
+                    response = web.StreamResponse()
+                    response.content_type = request.headers.get(CONTENT_TYPE)
+                    await response.prepare(request)
+                    async for data in client_response.content:
+                        await response.write(data)
+                    _LOGGER.info("End of log response")
+                except ConnectionResetError:
+                    _LOGGER.info("Connection reset (client probably disconnected)")
+                except Exception:
+                    _LOGGER.exception("Streaming timeout", exc_info=True)
+                return response

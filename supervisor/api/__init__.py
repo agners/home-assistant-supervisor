@@ -147,6 +147,7 @@ class RestAPI(CoreSysAttributes):
                 web.post("/os/config/sync", api_os.config_sync),
                 web.post("/os/datadisk/move", api_os.migrate_data),
                 web.get("/os/datadisk/list", api_os.list_data),
+                web.get(r"/os/logs/{subpath:.*}", api_os.list_logs),
             ]
         )
 
