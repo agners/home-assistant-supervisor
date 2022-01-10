@@ -8,6 +8,7 @@ import tarfile
 from typing import Optional
 from uuid import UUID
 
+import async_timeout
 from awesomeversion import AwesomeVersion, AwesomeVersionException
 
 from supervisor.exceptions import HomeAssistantWSError
@@ -305,9 +306,15 @@ class HomeAssistant(FileConfiguration, CoreSysAttributes):
 
         # Let Home Assistant Core know we are about to backup
         try:
-            await self.websocket.async_send_command({ATTR_TYPE: WSType.BACKUP_START})
+            # Database lock has a timeout of 30s in HA Core. If the websocket call
+            # doens't return within that time frame (+some overhead), we must assume
+            # the Core somehow crashed.
+            async with async_timeout.timeout(35):
+                await self.websocket.async_send_command(
+                    {ATTR_TYPE: WSType.BACKUP_START}
+                )
 
-        except HomeAssistantWSError:
+        except (HomeAssistantWSError, asyncio.TimeoutError):
             _LOGGER.warning(
                 "Preparing backup of Home Assistant Core failed. Check HA Core logs."
             )
@@ -331,10 +338,11 @@ class HomeAssistant(FileConfiguration, CoreSysAttributes):
             _LOGGER.info("Backup Home Assistant Core config folder done")
         finally:
             try:
-                await self.sys_homeassistant.websocket.async_send_command(
-                    {ATTR_TYPE: WSType.BACKUP_END}
-                )
-            except HomeAssistantWSError:
+                async with async_timeout.timeout(35):
+                    await self.sys_homeassistant.websocket.async_send_command(
+                        {ATTR_TYPE: WSType.BACKUP_END}
+                    )
+            except (HomeAssistantWSError, asyncio.TimeoutError):
                 _LOGGER.warning(
                     "Error during Home Assistant Core backup. Check HA Core logs."
                 )
