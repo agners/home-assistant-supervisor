@@ -120,6 +120,11 @@
             "permissions": "rw"
           },
           {
+            "localPath": "/run/systemd-journal-gatewayd.sock",
+            "containerPath": "/run/systemd-journal-gatewayd.sock",
+            "permissions": "rw"
+          },
+          {
             "localPath": "/run/dbus",
             "containerPath": "/run/dbus",
             "permissions": "ro"

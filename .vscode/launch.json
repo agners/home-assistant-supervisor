@@ -13,6 +13,19 @@
           "remoteRoot": "/usr/src/supervisor"
         }
       ]
+    },
+    {
+      "name": "Supervisor remote remote debug",
+      "type": "python",
+      "request": "attach",
+      "port": 33333,
+      "host": "ha-intel-nuc.lan",
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}",
+          "remoteRoot": "/usr/src/supervisor"
+        }
+      ]
     }
   ]
 }
