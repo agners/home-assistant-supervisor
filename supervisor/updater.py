@@ -23,6 +23,7 @@ from .const import (
     ATTR_MULTICAST,
     ATTR_OBSERVER,
     ATTR_OTA,
+    ATTR_PROXY,
     ATTR_SUPERVISOR,
     FILE_HASSIO_UPDATER,
     URL_HASSIO_VERSION,
@@ -155,6 +156,11 @@ class Updater(FileConfiguration, CoreSysAttributes):
         return self._data.get(ATTR_OBSERVER)
 
     @property
+    def version_proxy(self) -> AwesomeVersion | None:
+        """Return latest version of Proxy."""
+        return self._data.get(ATTR_PROXY)
+
+    @property
     def version_multicast(self) -> AwesomeVersion | None:
         """Return latest version of Multicast."""
         return self._data.get(ATTR_MULTICAST)
@@ -215,6 +221,13 @@ class Updater(FileConfiguration, CoreSysAttributes):
         return self._data[ATTR_IMAGE][ATTR_MULTICAST].format(
             arch=self.sys_arch.supervisor
         )
+
+    @property
+    def image_proxy(self) -> str | None:
+        """Return image of Proxy docker."""
+        if ATTR_PROXY not in self._data[ATTR_IMAGE]:
+            return None
+        return self._data[ATTR_IMAGE][ATTR_PROXY].format(arch=self.sys_arch.supervisor)
 
     @property
     def ota_url(self) -> str | None:
@@ -339,6 +352,9 @@ class Updater(FileConfiguration, CoreSysAttributes):
             versions[ATTR_AUDIO] = AwesomeVersion(data["audio"])
             versions[ATTR_OBSERVER] = AwesomeVersion(data["observer"])
             versions[ATTR_MULTICAST] = AwesomeVersion(data["multicast"])
+            # Optional until the proxy plugin is published to the version file
+            if "proxy" in data:
+                versions[ATTR_PROXY] = AwesomeVersion(data["proxy"])
 
             # Update images for that versions
             images[ATTR_HOMEASSISTANT] = data["images"]["core"]
@@ -348,6 +364,8 @@ class Updater(FileConfiguration, CoreSysAttributes):
             images[ATTR_DNS] = data["images"]["dns"]
             images[ATTR_OBSERVER] = data["images"]["observer"]
             images[ATTR_MULTICAST] = data["images"]["multicast"]
+            if "proxy" in data["images"]:
+                images[ATTR_PROXY] = data["images"]["proxy"]
 
         except KeyError as err:
             raise UpdaterError(

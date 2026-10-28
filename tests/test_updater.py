@@ -42,6 +42,7 @@ async def test_fetch_versions(
     assert coresys.updater.version_dns == data["dns"]
     assert coresys.updater.version_multicast == data["multicast"]
     assert coresys.updater.version_observer == data["observer"]
+    assert coresys.updater.version_proxy == data["proxy"]
 
     assert coresys.updater.image_homeassistant == data["images"]["core"].format(
         machine=coresys.machine
@@ -63,6 +64,9 @@ async def test_fetch_versions(
         arch=coresys.arch.supervisor
     )
     assert coresys.updater.image_multicast == data["images"]["multicast"].format(
+        arch=coresys.arch.supervisor
+    )
+    assert coresys.updater.image_proxy == data["images"]["proxy"].format(
         arch=coresys.arch.supervisor
     )
 

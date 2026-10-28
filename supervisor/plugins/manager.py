@@ -14,6 +14,7 @@ from .cli import PluginCli
 from .dns import PluginDns
 from .multicast import PluginMulticast
 from .observer import PluginObserver
+from .proxy import PluginProxy
 
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
@@ -30,6 +31,7 @@ class PluginManager(CoreSysAttributes):
         self._audio: PluginAudio = PluginAudio(coresys)
         self._observer: PluginObserver = PluginObserver(coresys)
         self._multicast: PluginMulticast = PluginMulticast(coresys)
+        self._proxy: PluginProxy = PluginProxy(coresys)
 
     async def load_config(self) -> Self:
         """Load config in executor."""
@@ -39,7 +41,14 @@ class PluginManager(CoreSysAttributes):
     @property
     def all_plugins(self) -> list[PluginBase]:
         """Return cli handler."""
-        return [self._cli, self._dns, self._audio, self._observer, self._multicast]
+        return [
+            self._cli,
+            self._dns,
+            self._audio,
+            self._observer,
+            self._multicast,
+            self._proxy,
+        ]
 
     @property
     def cli(self) -> PluginCli:
@@ -65,6 +74,11 @@ class PluginManager(CoreSysAttributes):
     def multicast(self) -> PluginMulticast:
         """Return multicast handler."""
         return self._multicast
+
+    @property
+    def proxy(self) -> PluginProxy:
+        """Return proxy handler."""
+        return self._proxy
 
     async def load(self) -> None:
         """Load Supervisor plugins."""

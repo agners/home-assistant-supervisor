@@ -258,7 +258,9 @@ class Core(CoreSysAttributes):
         # path that starts Core in the meantime (API, watchdog, restore)
         # releases it too: HomeAssistantCore.start()/restart() own that.
         try:
-            await self.sys_homeassistant.core.reserve_port()
+            # The proxy plugin holds the ports itself and starts before apps
+            if not self.sys_plugins.proxy.enabled:
+                await self.sys_homeassistant.core.reserve_port()
 
             # Start app mark as initialize
             await self.sys_apps.boot(AppStartup.INITIALIZE)

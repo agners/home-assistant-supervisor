@@ -557,6 +557,61 @@ class ObserverUnknownError(ObserverError, APIUnknownSupervisorError):
     message_template = "An unknown error occurred with Observer"
 
 
+# Proxy
+
+
+class ProxyError(PluginError):
+    """Proxy plugin exception."""
+
+
+class ProxyUpdateError(ProxyError):
+    """Error on update of the proxy plugin."""
+
+
+class ProxyJobError(ProxyError, PluginJobError):
+    """Raise on job error with the proxy plugin."""
+
+
+class ProxyDisabledError(ProxyError, PluginDisabledError):
+    """Raise when an action requires the disabled proxy plugin."""
+
+    error_key = "proxy_disabled_error"
+    message_template = "Proxy plugin is disabled"
+
+    def __init__(self, logger: Callable[..., None] | None = None) -> None:
+        """Raise & log."""
+        super().__init__("proxy", logger)
+
+
+class ProxyNotRunningError(ProxyError, APIError):
+    """Raise when the proxy plugin is not running."""
+
+    error_key = "proxy_not_running_error"
+    message_template = "Proxy is not running"
+
+    def __init__(self, logger: Callable[..., None] | None = None) -> None:
+        """Raise & log."""
+        super().__init__(None, logger)
+
+
+class ProxyStatsTimeoutError(ProxyError, APIInternalServerError):
+    """Raise when fetching stats for the proxy plugin times out."""
+
+    error_key = "proxy_stats_timeout_error"
+    message_template = "Timed out getting stats for Proxy"
+
+    def __init__(self, logger: Callable[..., None] | None = None) -> None:
+        """Raise & log."""
+        super().__init__(None, logger)
+
+
+class ProxyUnknownError(ProxyError, APIUnknownSupervisorError):
+    """Raise when an unknown error occurs getting stats for the proxy plugin."""
+
+    error_key = "proxy_unknown_error"
+    message_template = "An unknown error occurred with Proxy"
+
+
 # Multicast
 
 

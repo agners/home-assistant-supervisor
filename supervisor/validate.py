@@ -41,6 +41,7 @@ from .const import (
     ATTR_OTA,
     ATTR_PASSWORD,
     ATTR_PORTS,
+    ATTR_PROXY,
     ATTR_PWNED,
     ATTR_REGISTRIES,
     ATTR_SESSION,
@@ -181,6 +182,7 @@ SCHEMA_UPDATER_CONFIG = vol.Schema(
         vol.Optional(ATTR_AUDIO): version_tag,
         vol.Optional(ATTR_OBSERVER): version_tag,
         vol.Optional(ATTR_MULTICAST): version_tag,
+        vol.Optional(ATTR_PROXY): version_tag,
         vol.Optional(ATTR_IMAGE, default=dict): vol.Schema(
             {
                 vol.Optional(ATTR_HOMEASSISTANT): docker_image,
@@ -190,6 +192,7 @@ SCHEMA_UPDATER_CONFIG = vol.Schema(
                 vol.Optional(ATTR_AUDIO): docker_image,
                 vol.Optional(ATTR_OBSERVER): docker_image,
                 vol.Optional(ATTR_MULTICAST): docker_image,
+                vol.Optional(ATTR_PROXY): docker_image,
             },
             extra=vol.REMOVE_EXTRA,
         ),

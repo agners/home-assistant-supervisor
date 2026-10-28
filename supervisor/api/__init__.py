@@ -48,6 +48,7 @@ from .multicast import APIMulticast
 from .network import APINetwork
 from .observer import APIObserver
 from .os import APIOS
+from .plugin_proxy import APIProxyPlugin
 from .proxy import APIProxy
 from .resolution import APIResolution
 from .root import APIRoot
@@ -155,6 +156,7 @@ class RestAPI(CoreSysAttributes):
             self._register_multicast(app)
             self._register_network(app)
             self._register_observer(app)
+            self._register_plugin_proxy(app)
             self._register_os(app)
             self._register_proxy(app)
             self._register_resolution(app)
@@ -366,6 +368,29 @@ class RestAPI(CoreSysAttributes):
                 web.get("/time/info", api_time.info),
                 web.post("/time/options", api_time.options),
             ]
+        )
+
+    def _register_plugin_proxy(self, app: web.Application) -> None:
+        """Register proxy plugin functions."""
+        api_proxy = APIProxyPlugin()
+        api_proxy.coresys = self.coresys
+
+        stats_handler = (
+            api_proxy.stats_v1
+            if app is self.versions[AppVersion.V1]
+            else api_proxy.stats
+        )
+        app.add_routes(
+            [
+                web.get("/proxy/info", api_proxy.info),
+                web.get("/proxy/stats", stats_handler),
+                web.post("/proxy/options", api_proxy.options),
+                web.post("/proxy/update", api_proxy.update),
+                web.post("/proxy/restart", api_proxy.restart),
+            ]
+        )
+        self._register_advanced_logs(
+            "/proxy", "hassio_proxy", default_format=LogFormatter.VERBOSE, app=app
         )
 
     def _register_os(self, app: web.Application) -> None:

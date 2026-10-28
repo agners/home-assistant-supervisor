@@ -465,6 +465,9 @@ def core_start_base_mocks(
     all_dbus_services: dict[str, DBusServiceMock | dict[str, DBusServiceMock]],
 ):
     """Set up boilerplate mocks for Core.start() that are not under test."""
+    # The port reservation is Core's own only without the proxy plugin
+    coresys.plugins.proxy._data["enabled"] = False  # pylint: disable=protected-access
+
     # Default config.last_boot is epoch (1970); HwHelper.last_boot returns now →
     # the two differ, so the supervisor-restart early-return is not triggered.
 
@@ -517,6 +520,21 @@ def core_start_base_mocks(
     ):
         coresys.homeassistant.version = AwesomeVersion("2023.8.1")
         yield
+
+
+@pytest.mark.usefixtures("core_start_base_mocks")
+async def test_start_skips_port_reservation_with_proxy_plugin(
+    coresys: CoreSys,
+    all_dbus_services: dict[str, DBusServiceMock | dict[str, DBusServiceMock]],
+):
+    """With the proxy plugin enabled the plugin holds the ports, nothing is reserved."""
+    coresys.plugins.proxy._data["enabled"] = True  # pylint: disable=protected-access
+    systemd_service: SystemdService = all_dbus_services["systemd"]
+    systemd_service.StartTransientUnit.calls.clear()
+
+    await coresys.core.start()
+
+    assert not systemd_service.StartTransientUnit.calls
 
 
 @pytest.mark.usefixtures("core_start_base_mocks")

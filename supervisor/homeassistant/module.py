@@ -315,6 +315,8 @@ class HomeAssistant(FileConfiguration, CoreSysAttributes):
         """
         self.sys_config.path_run_core.mkdir(parents=True, exist_ok=True)
         self.path_run_supervisor.mkdir(parents=True, exist_ok=True)
+        if self.sys_plugins.proxy.enabled:
+            self.sys_plugins.proxy.ensure_run_dirs()
 
     @property
     def audio_output(self) -> str | None:

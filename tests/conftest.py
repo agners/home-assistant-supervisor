@@ -728,6 +728,7 @@ async def tmp_supervisor_data(
         coresys.config.path_homeassistant.mkdir()
         coresys.config.path_audio.mkdir()
         coresys.config.path_dns.mkdir()
+        coresys.config.path_proxy.mkdir()
         coresys.config.path_share.mkdir()
         coresys.config.path_apps_data.mkdir(parents=True)
         coresys.config.path_app_configs.mkdir(parents=True)

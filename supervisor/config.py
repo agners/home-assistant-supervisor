@@ -51,6 +51,7 @@ TMP_DATA = PurePath("tmp")
 APPARMOR_DATA = PurePath("apparmor")
 APPARMOR_CACHE = PurePath("apparmor/cache")
 DNS_DATA = PurePath("dns")
+PROXY_DATA = PurePath("proxy")
 AUDIO_DATA = PurePath("audio")
 MEDIA_DATA = PurePath("media")
 MOUNTS_FOLDER = PurePath("mounts")
@@ -62,6 +63,10 @@ CID_FILES = PurePath("cid_files")
 
 RUN_SUPERVISOR = PurePath("supervisor")
 RUN_CORE = PurePath("core")
+RUN_PLUGINS = PurePath("plugins")
+# Core listens for the proxy plugin in here, below the core tree
+RUN_CORE_PROXY = PurePath("core/plugins/proxy")
+RUN_PLUGIN_PROXY = PurePath("plugins/proxy")
 
 DEFAULT_BOOT_TIME = datetime.fromtimestamp(0, UTC).isoformat()
 
@@ -379,6 +384,16 @@ class CoreConfig(FileConfiguration):
         return self.path_supervisor / DNS_DATA
 
     @property
+    def path_extern_proxy(self) -> PurePath:
+        """Return proxy plugin data path external for Docker."""
+        return PurePath(self.path_extern_supervisor, PROXY_DATA)
+
+    @property
+    def path_proxy(self) -> Path:
+        """Return proxy plugin data path inside supervisor."""
+        return self.path_supervisor / PROXY_DATA
+
+    @property
     def path_media(self) -> Path:
         """Return root media data folder."""
         return self.path_supervisor / MEDIA_DATA
@@ -457,6 +472,26 @@ class CoreConfig(FileConfiguration):
     def path_extern_run_core(self) -> PurePath:
         """Return folder for sockets Core listens on external for Docker."""
         return PurePath(self.path_extern_run, RUN_CORE)
+
+    @property
+    def path_run_core_proxy(self) -> Path:
+        """Return folder of the socket Core listens on for the proxy plugin."""
+        return self.path_run / RUN_CORE_PROXY
+
+    @property
+    def path_extern_run_core_proxy(self) -> PurePath:
+        """Return folder of the socket Core listens on for the proxy plugin for Docker."""
+        return PurePath(self.path_extern_run, RUN_CORE_PROXY)
+
+    @property
+    def path_run_proxy(self) -> Path:
+        """Return folder of the socket the proxy plugin listens on."""
+        return self.path_run / RUN_PLUGIN_PROXY
+
+    @property
+    def path_extern_run_proxy(self) -> PurePath:
+        """Return folder of the socket the proxy plugin listens on for Docker."""
+        return PurePath(self.path_extern_run, RUN_PLUGIN_PROXY)
 
     @property
     def apps_repositories(self) -> list[str]:

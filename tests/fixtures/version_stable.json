@@ -66,7 +66,8 @@
     "audio": "homeassistant/{arch}-hassio-audio",
     "dns": "homeassistant/{arch}-hassio-dns",
     "observer": "homeassistant/{arch}-hassio-observer",
-    "multicast": "homeassistant/{arch}-hassio-multicast"
+    "multicast": "homeassistant/{arch}-hassio-multicast",
+    "proxy": "homeassistant/{arch}-hassio-proxy"
   },
   "images": {
     "core": "ghcr.io/home-assistant/{machine}-homeassistant",
@@ -75,6 +76,8 @@
     "audio": "ghcr.io/home-assistant/{arch}-hassio-audio",
     "dns": "ghcr.io/home-assistant/{arch}-hassio-dns",
     "observer": "ghcr.io/home-assistant/{arch}-hassio-observer",
-    "multicast": "ghcr.io/home-assistant/{arch}-hassio-multicast"
-  }
+    "multicast": "ghcr.io/home-assistant/{arch}-hassio-multicast",
+    "proxy": "ghcr.io/home-assistant/{arch}-hassio-proxy"
+  },
+  "proxy": "2026.10.0"
 }

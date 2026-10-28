@@ -203,6 +203,53 @@ async def test_homeassistant_start_with_unix_socket(
 
 
 @pytest.mark.usefixtures("tmp_supervisor_data", "path_extern")
+@pytest.mark.parametrize(
+    ("proxy_enabled", "expected"),
+    [pytest.param(True, True, id="enabled"), pytest.param(False, False, id="disabled")],
+)
+async def test_homeassistant_start_proxy_plugin(
+    coresys: CoreSys,
+    container: DockerContainer,
+    tmp_run_dir: Path,
+    proxy_enabled: bool,
+    expected: bool,
+) -> None:
+    """Test Core only gets the proxy sockets while the plugin is enabled."""
+    coresys.homeassistant.version = AwesomeVersion("2026.4.0")
+    coresys.plugins.proxy._data["enabled"] = proxy_enabled  # pylint: disable=protected-access
+
+    with (
+        patch.object(DockerAPI, "run", return_value=container.show.return_value) as run,
+        patch.object(
+            DockerHomeAssistant, "is_running", side_effect=[False, False, True]
+        ),
+        patch("supervisor.homeassistant.core.asyncio.sleep"),
+    ):
+        await coresys.homeassistant.core.start()
+
+    env = run.call_args.kwargs["environment"]
+    mounts = run.call_args.kwargs["mounts"]
+    assert ("SUPERVISOR_PROXY_SOCKET" in env) is expected
+    assert ("SUPERVISOR_PROXY_CORE_SOCKET" in env) is expected
+    assert (
+        DockerMount(
+            type=MountType.BIND,
+            source="/run/supervisor/plugins/proxy",
+            target="/run/supervisor/proxy",
+            read_only=True,
+        )
+        in mounts
+    ) is expected
+    assert (tmp_run_dir / "core" / "plugins" / "proxy").is_dir() is expected
+    if expected:
+        assert env["SUPERVISOR_PROXY_SOCKET"] == "/run/supervisor/proxy/proxy.sock"
+        assert (
+            env["SUPERVISOR_PROXY_CORE_SOCKET"]
+            == "/run/supervisor/core/plugins/proxy/core.sock"
+        )
+
+
+@pytest.mark.usefixtures("tmp_supervisor_data", "path_extern")
 async def test_landingpage_start(coresys: CoreSys, container: DockerContainer):
     """Test starting landingpage."""
     coresys.homeassistant.version = LANDINGPAGE

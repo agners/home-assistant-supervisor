@@ -61,14 +61,14 @@ async def test_load(
     ):
         await coresys.plugins.load()
 
-        assert attach.call_count == 5
+        assert attach.call_count == 6
         update.assert_not_called()
 
         need_update.return_value = False
         await coresys.plugins.load()
 
-        assert attach.call_count == 10
-        assert update.call_count == 5
+        assert attach.call_count == 12
+        assert update.call_count == 6
 
 
 @pytest.mark.usefixtures("no_job_throttle")
@@ -95,5 +95,5 @@ async def test_load_skip_update_auto_update_disabled(
     ):
         await coresys.plugins.load()
 
-        assert attach.call_count == 5
+        assert attach.call_count == 6
         update.assert_not_called()

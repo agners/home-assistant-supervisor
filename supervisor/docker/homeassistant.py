@@ -6,7 +6,13 @@ import re
 
 from awesomeversion import AwesomeVersion
 
-from ..const import LABEL_MACHINE, LABEL_TYPE, SOCKET_NAME_CORE, SOCKET_NAME_SUPERVISOR
+from ..const import (
+    LABEL_MACHINE,
+    LABEL_TYPE,
+    SOCKET_NAME_CORE,
+    SOCKET_NAME_PROXY,
+    SOCKET_NAME_SUPERVISOR,
+)
 from ..exceptions import DockerJobError
 from ..hardware.const import PolicyGroup
 from ..homeassistant.const import LANDINGPAGE, LANDINGPAGE_TYPE
@@ -15,6 +21,8 @@ from ..jobs.decorator import Job
 from .const import (
     ENV_CORE_API_SOCKET,
     ENV_DUPLICATE_LOG_FILE,
+    ENV_PROXY_CORE_SOCKET,
+    ENV_PROXY_SOCKET,
     ENV_SUPERVISOR_SOCKET,
     ENV_TIME,
     ENV_TOKEN,
@@ -27,6 +35,7 @@ from .const import (
     PATH_PUBLIC_CONFIG,
     PATH_RUN_API,
     PATH_RUN_CORE,
+    PATH_RUN_PROXY,
     PATH_SHARE,
     PATH_SSL,
     DockerMount,
@@ -197,6 +206,16 @@ class DockerHomeAssistant(DockerInterface):
                     ),
                 ]
             )
+            if self.sys_plugins.proxy.enabled:
+                # The proxy plugin listens for Core on its admin socket in here
+                mounts.append(
+                    DockerMount(
+                        type=MountType.BIND,
+                        source=self.sys_config.path_extern_run_proxy.as_posix(),
+                        target=PATH_RUN_PROXY.as_posix(),
+                        read_only=True,
+                    )
+                )
 
         return mounts
 
@@ -223,6 +242,13 @@ class DockerHomeAssistant(DockerInterface):
             environment[ENV_SUPERVISOR_SOCKET] = (
                 PATH_RUN_API / SOCKET_NAME_SUPERVISOR
             ).as_posix()
+            if self.sys_plugins.proxy.enabled:
+                environment[ENV_PROXY_SOCKET] = (
+                    PATH_RUN_PROXY / SOCKET_NAME_PROXY
+                ).as_posix()
+                environment[ENV_PROXY_CORE_SOCKET] = (
+                    PATH_RUN_CORE / "plugins" / "proxy" / SOCKET_NAME_CORE
+                ).as_posix()
         if self.sys_homeassistant.duplicate_log_file:
             environment[ENV_DUPLICATE_LOG_FILE] = "1"
         await self._run(
