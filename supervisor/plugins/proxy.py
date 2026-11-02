@@ -17,6 +17,7 @@ from ..exceptions import (
     DockerContainerNotFoundError,
     DockerContainerNotRunningError,
     DockerError,
+    DockerNotFound,
     DockerStatsTimeoutError,
     HomeAssistantError,
     PluginDisabledError,
@@ -159,6 +160,9 @@ class PluginProxy(PluginBase):
             await self.sys_run_in_executor(self._prepare_start)
             try:
                 await self.instance.restart()
+            except DockerNotFound:
+                # Recreate a container that went missing from the current image
+                await self.start()
             except DockerError as err:
                 raise ProxyError("Can't start Proxy plugin", _LOGGER.error) from err
 

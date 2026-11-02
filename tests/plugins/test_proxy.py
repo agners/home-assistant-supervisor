@@ -11,6 +11,7 @@ from supervisor.exceptions import (
     DockerContainerNotFoundError,
     DockerContainerNotRunningError,
     DockerError,
+    DockerNotFound,
     DockerStatsTimeoutError,
     PluginError,
     ProxyDisabledError,
@@ -69,6 +70,18 @@ async def test_start_prepares_run_dirs(coresys: CoreSys, tmp_run_dir: Path) -> N
     assert (tmp_run_dir / "plugins" / "proxy").is_dir()
     assert (tmp_run_dir / "core" / "plugins" / "proxy").is_dir()
     assert not stale.exists()
+
+
+@pytest.mark.usefixtures("tmp_supervisor_data", "tmp_run_dir")
+async def test_restart_recreates_missing_container(coresys: CoreSys) -> None:
+    """Test restart starts the plugin again when its container is gone."""
+    with (
+        patch.object(DockerProxy, "restart", side_effect=DockerNotFound("gone")),
+        patch.object(DockerProxy, "run") as run,
+    ):
+        await coresys.plugins.proxy.restart()
+
+    run.assert_called_once()
 
 
 @pytest.mark.parametrize("action", ["start", "restart"])
