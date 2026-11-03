@@ -10,7 +10,7 @@ from ..jobs.decorator import Job
 from .const import (
     ENV_TIME,
     PATH_PRIVATE_DATA,
-    PATH_RUN_CORE,
+    PATH_RUN_CORE_PROXY,
     PATH_RUN_PROXY,
     DockerMount,
     MountType,
@@ -55,7 +55,7 @@ class DockerProxy(DockerInterface, CoreSysAttributes):
             DockerMount(
                 type=MountType.BIND,
                 source=self.sys_config.path_extern_run_core_proxy.as_posix(),
-                target=PATH_RUN_CORE.as_posix(),
+                target=PATH_RUN_CORE_PROXY.as_posix(),
                 read_only=True,
             ),
         ]

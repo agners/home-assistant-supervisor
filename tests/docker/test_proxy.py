@@ -42,7 +42,7 @@ async def test_start(coresys: CoreSys, container: DockerContainer) -> None:
         DockerMount(
             type=MountType.BIND,
             source="/run/supervisor/core/plugins/proxy",
-            target="/run/supervisor/core",
+            target="/run/supervisor/core/plugins/proxy",
             read_only=True,
         ),
     ]

@@ -210,6 +210,9 @@ PATH_SHARE = PurePath("/share")
 PATH_MEDIA = PurePath("/media")
 PATH_RUN_API = PurePath("/run/supervisor/api")
 PATH_RUN_CORE = PurePath("/run/supervisor/core")
+# Same path as Core sees its proxy socket, so it is never mistaken for the
+# Supervisor-facing Core socket
+PATH_RUN_CORE_PROXY = PurePath("/run/supervisor/core/plugins/proxy")
 PATH_RUN_PROXY = PurePath("/run/supervisor/proxy")
 # Legacy, deprecated as of 2026.07
 PATH_ALL_ADDON_CONFIGS = PurePath("/addon_configs")
