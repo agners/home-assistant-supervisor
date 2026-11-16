@@ -46,6 +46,7 @@ from ..exceptions import (
     HomeAssistantUpdateError,
     HomeAssistantUpdateImageError,
     JobException,
+    ProxyError,
     SupervisorUpdateError,
 )
 from ..jobs import ChildJobSyncFilter
@@ -534,6 +535,12 @@ class HomeAssistantCore(JobGroup):
             return
 
         await self._prepare_run_dirs()
+        if self.sys_plugins.proxy.enabled:
+            # The proxy serves the frontend of the Core image about to run
+            try:
+                await self.sys_plugins.proxy.ensure_mounts()
+            except ProxyError as err:
+                _LOGGER.warning("Proxy plugin not recreated for this Core: %s", err)
 
         async with self.port_released():
             # Instance/Container exists, simple start

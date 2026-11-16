@@ -91,6 +91,7 @@ class MountType(StrEnum):
     VOLUME = "volume"
     TMPFS = "tmpfs"
     NPIPE = "npipe"
+    IMAGE = "image"
 
 
 class PropagationMode(StrEnum):
@@ -122,6 +123,18 @@ class MountBindOptions:
 
 
 @dataclass(slots=True, frozen=True)
+class MountImageOptions:
+    """Image options for docker mount, Docker Engine 28.0 and newer."""
+
+    # Directory inside the image to mount, relative to its root
+    subpath: str
+
+    def to_dict(self) -> dict[str, Any]:
+        """To dictionary representation."""
+        return {"Subpath": self.subpath}
+
+
+@dataclass(slots=True, frozen=True)
 class DockerMount:
     """A docker mount."""
 
@@ -130,6 +143,7 @@ class DockerMount:
     target: str
     read_only: bool
     bind_options: MountBindOptions | None = None
+    image_options: MountImageOptions | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """To dictionary representation."""
@@ -141,6 +155,8 @@ class DockerMount:
         }
         if self.bind_options:
             out["BindOptions"] = self.bind_options.to_dict()
+        if self.image_options:
+            out["ImageOptions"] = self.image_options.to_dict()
         return out
 
 
@@ -165,6 +181,8 @@ ENV_CORE_API_SOCKET = "SUPERVISOR_CORE_API_SOCKET"
 ENV_SUPERVISOR_SOCKET = "SUPERVISOR_SOCKET"
 ENV_PROXY_SOCKET = "SUPERVISOR_PROXY_SOCKET"
 ENV_PROXY_CORE_SOCKET = "SUPERVISOR_PROXY_CORE_SOCKET"
+# Directories mounted into the proxy plugin at the paths Core sees them
+ENV_PROXY_PATHS = "SUPERVISOR_PROXY_PATHS"
 ENV_DUPLICATE_LOG_FILE = "HA_DUPLICATE_LOG_FILE"
 ENV_TIME = "TZ"
 ENV_TOKEN = "SUPERVISOR_TOKEN"
@@ -202,6 +220,8 @@ PATH_PRIVATE_DATA = PurePath("/data")
 PATH_HOMEASSISTANT_CONFIG_LEGACY = PurePath("/config")
 PATH_HOMEASSISTANT_CONFIG = PurePath("/homeassistant")
 PATH_PUBLIC_CONFIG = PurePath("/config")
+# The user's static files, served as /local
+PATH_PUBLIC_WWW = PATH_PUBLIC_CONFIG / "www"
 PATH_ALL_APP_CONFIGS = PurePath("/app_configs")
 PATH_LOCAL_APPS = PurePath("/local_apps")
 PATH_SSL = PurePath("/ssl")

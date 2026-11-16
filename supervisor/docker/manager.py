@@ -69,6 +69,8 @@ from .utils import get_registry_from_image, is_corrupt_container_error
 _LOGGER: logging.Logger = logging.getLogger(__name__)
 
 MIN_SUPPORTED_DOCKER: Final = AwesomeVersion("24.0.0")
+# Image mounts (type=image with a subpath) arrived with Docker Engine 28.0
+MIN_DOCKER_IMAGE_MOUNT: Final = AwesomeVersion("28.0.0")
 DOCKER_NETWORK_HOST: Final = "host"
 RE_IMPORT_IMAGE_STREAM = re.compile(r"(^Loaded image ID: |^Loaded image: )(.+)$")
 RE_PORT_CONFLICT_ERROR = re.compile(
@@ -128,6 +130,14 @@ class DockerInfo:
         """Return true, if docker version is supported."""
         try:
             return self.version >= MIN_SUPPORTED_DOCKER
+        except AwesomeVersionCompareException:
+            return False
+
+    @property
+    def supports_image_mounts(self) -> bool:
+        """Return true, if a directory of an image can be mounted."""
+        try:
+            return self.version >= MIN_DOCKER_IMAGE_MOUNT
         except AwesomeVersionCompareException:
             return False
 

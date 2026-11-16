@@ -4,13 +4,19 @@ Code: https://github.com/home-assistant/plugin-proxy
 """
 
 import logging
-from pathlib import Path
+from pathlib import Path, PurePath
 
 from awesomeversion import AwesomeVersion
 
-from ..const import SOCKET_NAME_PROXY
+from ..const import LABEL_FRONTEND, SOCKET_NAME_PROXY
 from ..coresys import CoreSys
-from ..docker.const import ContainerState
+from ..docker.const import (
+    PATH_PUBLIC_WWW,
+    ContainerState,
+    DockerMount,
+    MountImageOptions,
+    MountType,
+)
 from ..docker.proxy import DockerProxy
 from ..docker.stats import DockerStats
 from ..exceptions import (
@@ -80,6 +86,72 @@ class PluginProxy(PluginBase):
         """Return the resumed config file of the proxy."""
         return self.sys_config.path_proxy / AUTOSAVE_FILE
 
+    @property
+    def frontend_mount(self) -> DockerMount | None:
+        """Return the mount of the Core image's frontend package, if possible.
+
+        The image names the package path in a label and keeps it stable; the
+        proxy sees it at that same path. Needs an engine with image mounts.
+        """
+        if not self.sys_docker.info.supports_image_mounts:
+            return None
+        path = self.sys_homeassistant.core.instance.meta_labels.get(LABEL_FRONTEND)
+        if not path:
+            return None
+        return DockerMount(
+            type=MountType.IMAGE,
+            source=f"{self.sys_homeassistant.image}:{self.sys_homeassistant.version}",
+            target=path,
+            read_only=True,
+            image_options=MountImageOptions(subpath=path.lstrip("/")),
+        )
+
+    @property
+    def www_mount(self) -> DockerMount:
+        """Return the mount of the user's www folder, served as /local."""
+        return DockerMount(
+            type=MountType.BIND,
+            source=(self.sys_config.path_extern_homeassistant / "www").as_posix(),
+            target=PATH_PUBLIC_WWW.as_posix(),
+            read_only=True,
+        )
+
+    @property
+    def shared_paths(self) -> list[PurePath]:
+        """Return the directories the proxy sees at the same path as Core."""
+        paths: list[PurePath] = []
+        if (frontend := self.frontend_mount) is not None:
+            paths.append(PurePath(frontend.target))
+        paths.append(PATH_PUBLIC_WWW)
+        return paths
+
+    async def ensure_mounts(self) -> None:
+        """Recreate the proxy when its frontend mount is not the Core image to run.
+
+        Called before Core starts, so an updated Core never meets a proxy that
+        still serves the previous frontend.
+        """
+        if not self.enabled or not await self.instance.exists():
+            return
+        wanted = (
+            frontend.source if (frontend := self.frontend_mount) is not None else None
+        )
+        current = next(
+            (
+                mount.get("Source")
+                for mount in self.instance.meta_mounts
+                if mount.get("Type") == MountType.IMAGE
+            ),
+            None,
+        )
+        if current == wanted:
+            return
+        _LOGGER.info("Recreating the proxy plugin for the frontend of Core %s", wanted)
+        try:
+            await self.rebuild()
+        except (DockerError, PluginError) as err:
+            raise ProxyError("Can't recreate the proxy plugin", _LOGGER.error) from err
+
     def ensure_run_dirs(self) -> None:
         """Create the folders the proxy's socket mounts need.
 
@@ -88,6 +160,8 @@ class PluginProxy(PluginBase):
         self.sys_config.path_proxy.mkdir(parents=True, exist_ok=True)
         self.sys_config.path_run_proxy.mkdir(parents=True, exist_ok=True)
         self.sys_config.path_run_core_proxy.mkdir(parents=True, exist_ok=True)
+        # Mounted into the proxy; Docker would otherwise create it as root
+        (self.sys_config.path_homeassistant / "www").mkdir(exist_ok=True)
 
     def _prepare_start(self) -> None:
         """Prepare folders and remove a stale admin socket before a start.

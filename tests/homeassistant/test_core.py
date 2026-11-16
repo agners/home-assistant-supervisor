@@ -43,6 +43,7 @@ from supervisor.homeassistant.const import LANDINGPAGE, WSEvent
 from supervisor.homeassistant.core import HomeAssistantCore, _format_bind_address
 from supervisor.homeassistant.module import HomeAssistant
 from supervisor.jobs.const import JobCondition
+from supervisor.plugins.proxy import PluginProxy
 from supervisor.resolution.const import ContextType, IssueType
 from supervisor.resolution.data import Issue
 from supervisor.updater import Updater
@@ -725,6 +726,39 @@ async def test_start_existing_container(coresys: CoreSys, container: DockerConta
     container.stop.assert_not_called()
     container.delete.assert_not_called()
     coresys.docker.containers.create.assert_not_called()
+
+
+@pytest.mark.usefixtures("path_extern")
+@pytest.mark.parametrize(
+    ("proxy_enabled", "ensured"),
+    [pytest.param(True, True, id="enabled"), pytest.param(False, False, id="disabled")],
+)
+async def test_start_ensures_proxy_mounts(
+    coresys: CoreSys,
+    container: DockerContainer,
+    proxy_enabled: bool,
+    ensured: bool,
+) -> None:
+    """Test start lets the proxy plugin match its frontend to this Core first."""
+    coresys.docker.images.inspect.return_value = {"Id": "123"}
+    container.show.return_value["Image"] = "123"
+    container.show.return_value["State"]["Status"] = "exited"
+    container.show.return_value["State"]["Running"] = False
+    coresys.plugins.proxy._data["enabled"] = proxy_enabled  # pylint: disable=protected-access
+
+    with (
+        patch.object(
+            HomeAssistant,
+            "version",
+            new=PropertyMock(return_value=AwesomeVersion("2023.7.0")),
+        ),
+        patch.object(HomeAssistantCore, "_block_till_run"),
+        patch.object(PluginProxy, "ensure_mounts") as ensure_mounts,
+    ):
+        await coresys.homeassistant.core.start()
+
+    assert ensure_mounts.called is ensured
+    container.start.assert_called_once()
 
 
 @pytest.mark.usefixtures("path_extern")

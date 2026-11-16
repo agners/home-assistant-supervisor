@@ -90,6 +90,8 @@ DNS_SUFFIX = "local.hass.io"
 
 LABEL_ARCH = "io.hass.arch"
 LABEL_DESCRIPTION = "io.hass.description"
+# Where the Core image keeps the frontend package, for the proxy plugin
+LABEL_FRONTEND = "io.hass.frontend"
 LABEL_MACHINE = "io.hass.machine"
 LABEL_NAME = "io.hass.name"
 LABEL_TYPE = "io.hass.type"

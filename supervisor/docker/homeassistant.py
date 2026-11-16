@@ -22,6 +22,7 @@ from .const import (
     ENV_CORE_API_SOCKET,
     ENV_DUPLICATE_LOG_FILE,
     ENV_PROXY_CORE_SOCKET,
+    ENV_PROXY_PATHS,
     ENV_PROXY_SOCKET,
     ENV_SUPERVISOR_SOCKET,
     ENV_TIME,
@@ -249,6 +250,9 @@ class DockerHomeAssistant(DockerInterface):
                 environment[ENV_PROXY_CORE_SOCKET] = (
                     PATH_RUN_CORE / "plugins" / "proxy" / SOCKET_NAME_CORE
                 ).as_posix()
+                environment[ENV_PROXY_PATHS] = ":".join(
+                    path.as_posix() for path in self.sys_plugins.proxy.shared_paths
+                )
         if self.sys_homeassistant.duplicate_log_file:
             environment[ENV_DUPLICATE_LOG_FILE] = "1"
         await self._run(

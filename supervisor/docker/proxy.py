@@ -36,6 +36,7 @@ class DockerProxy(DockerInterface, CoreSysAttributes):
     @property
     def mounts(self) -> list[DockerMount]:
         """Return mounts for container."""
+        frontend = self.sys_plugins.proxy.frontend_mount
         return [
             # Resumed config, certificates and TLS state
             DockerMount(
@@ -58,6 +59,9 @@ class DockerProxy(DockerInterface, CoreSysAttributes):
                 target=PATH_RUN_CORE_PROXY.as_posix(),
                 read_only=True,
             ),
+            # Static files the proxy serves itself
+            *([frontend] if frontend is not None else []),
+            self.sys_plugins.proxy.www_mount,
         ]
 
     @Job(

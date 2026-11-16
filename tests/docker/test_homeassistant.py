@@ -247,6 +247,8 @@ async def test_homeassistant_start_proxy_plugin(
             env["SUPERVISOR_PROXY_CORE_SOCKET"]
             == "/run/supervisor/core/plugins/proxy/core.sock"
         )
+        # No frontend label on the image: only the www folder is shared
+        assert env["SUPERVISOR_PROXY_PATHS"] == "/config/www"
 
 
 @pytest.mark.usefixtures("tmp_supervisor_data", "path_extern")

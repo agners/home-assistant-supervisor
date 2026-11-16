@@ -1,8 +1,10 @@
 """Test proxy plugin."""
 
+from dataclasses import replace
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
+from awesomeversion import AwesomeVersion
 import pytest
 
 from supervisor.coresys import CoreSys
@@ -22,6 +24,8 @@ from supervisor.exceptions import (
 )
 from supervisor.homeassistant.core import HomeAssistantCore
 from supervisor.plugins.base import PluginBase
+
+FRONTEND_LABEL = {"io.hass.frontend": "/usr/share/hass_frontend"}
 
 
 @pytest.mark.parametrize(
@@ -69,7 +73,67 @@ async def test_start_prepares_run_dirs(coresys: CoreSys, tmp_run_dir: Path) -> N
     run.assert_called_once()
     assert (tmp_run_dir / "plugins" / "proxy").is_dir()
     assert (tmp_run_dir / "core" / "plugins" / "proxy").is_dir()
+    assert (coresys.config.path_homeassistant / "www").is_dir()
     assert not stale.exists()
+
+
+@pytest.mark.parametrize(
+    ("exists", "labels", "mounted", "rebuilt"),
+    [
+        pytest.param(False, {}, None, False, id="no_container"),
+        pytest.param(True, {}, None, False, id="no_frontend"),
+        pytest.param(True, FRONTEND_LABEL, "img:2026.4.0", False, id="same_image"),
+        pytest.param(True, FRONTEND_LABEL, "img:2026.3.0", True, id="updated_core"),
+        pytest.param(True, FRONTEND_LABEL, None, True, id="mount_missing"),
+        pytest.param(True, {}, "img:2026.3.0", True, id="label_gone"),
+    ],
+)
+async def test_ensure_mounts(
+    coresys: CoreSys,
+    exists: bool,
+    labels: dict[str, str],
+    mounted: str | None,
+    rebuilt: bool,
+) -> None:
+    """Test the proxy is recreated when its frontend mount is not the Core image."""
+    coresys.docker._info = replace(  # pylint: disable=protected-access
+        coresys.docker.info, version=AwesomeVersion("28.0.0")
+    )
+    coresys.homeassistant.set_image("img")
+    coresys.homeassistant.version = AwesomeVersion("2026.4.0")
+    coresys.homeassistant.core.instance._meta = {  # pylint: disable=protected-access
+        "Config": {"Labels": labels}
+    }
+    coresys.plugins.proxy.instance._meta = {  # pylint: disable=protected-access
+        "Mounts": [{"Type": "bind", "Source": "/data"}]
+        + ([{"Type": "image", "Source": mounted}] if mounted else [])
+    }
+
+    with (
+        patch.object(DockerProxy, "exists", AsyncMock(return_value=exists)),
+        patch.object(PluginBase, "rebuild") as rebuild,
+    ):
+        await coresys.plugins.proxy.ensure_mounts()
+
+    assert rebuild.called is rebuilt
+
+
+async def test_ensure_mounts_failure(coresys: CoreSys) -> None:
+    """Test a failed recreate surfaces as ProxyError."""
+    coresys.docker._info = replace(  # pylint: disable=protected-access
+        coresys.docker.info, version=AwesomeVersion("28.0.0")
+    )
+    coresys.homeassistant.core.instance._meta = {  # pylint: disable=protected-access
+        "Config": {"Labels": FRONTEND_LABEL}
+    }
+    coresys.plugins.proxy.instance._meta = {"Mounts": []}  # pylint: disable=protected-access
+
+    with (
+        patch.object(DockerProxy, "exists", AsyncMock(return_value=True)),
+        patch.object(PluginBase, "rebuild", side_effect=DockerError("boom")),
+        pytest.raises(ProxyError),
+    ):
+        await coresys.plugins.proxy.ensure_mounts()
 
 
 @pytest.mark.usefixtures("tmp_supervisor_data", "tmp_run_dir")
